@@ -1,0 +1,8 @@
+[package]
+name = "rsvm"
+version = "0.1.0"
+authors = ["BlueGhostGH <engisoftleaderoff@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+colored = "2.0.0"
