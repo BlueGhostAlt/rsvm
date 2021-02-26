@@ -1,5 +1,3 @@
-#![feature(process_exitcode_placeholder, termination_trait_lib)]
-
 use std::{env, fmt, fs, process};
 
 use rsvm::VM;
@@ -41,10 +39,12 @@ fn try_main() -> Result<(), CliError> {
     let args = env::args().collect::<Vec<_>>();
 
     let filename = args.get(1).ok_or(CliError::NoFileProvided)?;
-    let input = fs::read_to_string(&filename).map_err(|_| CliError::FailedToOpenFile)?;
+    let input = fs::read(&filename).map_err(|_| CliError::FailedToOpenFile)?;
 
-    let vm = VM::new();
-    println!("{}\n{}", filename, input);
+    let mut vm = VM::new();
+    vm.load_program(input);
+
+    println!("{:?}", vm);
     Ok(())
 }
 
