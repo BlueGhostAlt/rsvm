@@ -44,7 +44,8 @@ fn try_main() -> Result<(), CliError> {
     let mut vm = VM::new();
     vm.load_program(input);
 
-    println!("{:?}", vm);
+    vm.run_program();
+
     Ok(())
 }
 

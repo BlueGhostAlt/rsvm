@@ -2,7 +2,7 @@
 
 fn nop(vm: &mut VM) {}
 
-const op_codes: [fn(&mut VM); 256] = [
+const OP_CODES: [fn(&mut VM); 256] = [
     nop, // 0x00
     nop, // 0x01
     nop, // 0x02
@@ -539,15 +539,7 @@ impl VM {
         self.bytecode[i..i + 4].iter().all(|nibble| nibble == &0x1d)
     }
 
-    pub fn new() -> VM {
-        Default::default()
-    }
-
-    pub fn load_program(&mut self, bytecode: Vec<u8>) {
-        self.bytecode = bytecode;
-    }
-
-    pub fn parse_header(&mut self) {
+    fn parse_header(&mut self) {
         self.hdr_size = 4;
 
         for i in 0..=self.bytecode.len() - 4 {
@@ -560,9 +552,26 @@ impl VM {
         }
     }
 
-    pub fn step_program(&mut self) {
+    fn step_program(&mut self) {
         let instruction = self.bytecode[(self.prgrm_cntr as usize) + self.hdr_size];
 
-        op_codes[instruction as usize](self);
+        OP_CODES[instruction as usize](self);
+    }
+
+    pub fn new() -> VM {
+        Default::default()
+    }
+
+    pub fn load_program(&mut self, bytecode: Vec<u8>) {
+        self.bytecode = bytecode;
+    }
+
+    pub fn run_program(&mut self) {
+        self.parse_header();
+
+        while !self.flags.get(Flag::Stop) {
+            self.step_program();
+            self.prgrm_cntr += 1;
+        }
     }
 }
