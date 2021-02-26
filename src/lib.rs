@@ -274,11 +274,28 @@ pub struct VM {
 }
 
 impl VM {
+    fn is_at_end_header(&self, i: usize) -> bool {
+        self.bytecode[i..i + 4].iter().all(|nibble| nibble == &0x1d)
+    }
+
     pub fn new() -> VM {
         Default::default()
     }
 
     pub fn load_program(&mut self, bytecode: Vec<u8>) {
         self.bytecode = bytecode;
+    }
+
+    pub fn parse_header(&mut self) {
+        self.hdr_size = 4;
+
+        for i in 0..=self.bytecode.len() - 4 {
+            if self.is_at_end_header(i) {
+                break;
+            }
+
+            self.heap.write(i, self.bytecode[i] as u32);
+            self.hdr_size += 1;
+        }
     }
 }
