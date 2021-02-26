@@ -49,11 +49,8 @@ fn try_main() -> Result<(), CliError> {
 }
 
 fn main() {
-    match try_main() {
-        Err(error) => {
-            eprintln!("{:?}", error);
-            process::exit(1)
-        }
-        _ => {}
+    if let Err(error) = try_main() {
+        eprintln!("{:?}", error);
+        process::exit(1)
     }
 }
