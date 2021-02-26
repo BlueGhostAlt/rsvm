@@ -8,6 +8,41 @@ use std::ptr::{self, Unique};
 const HEAP_INITIAL_CAPACITY: usize = 256; // 1KB
 const STACK_INITIAL_CAPACITY: usize = 128; // 512B
 
+const NO_OF_FLAGS: usize = 6;
+
+#[derive(Debug)]
+pub enum Flag {
+    Equal,
+    NotEqual,
+    Greater,
+    Smaller,
+    Overflow,
+    Stop,
+}
+
+#[derive(Debug)]
+pub struct FlagSet([bool; NO_OF_FLAGS]);
+
+impl FlagSet {
+    pub fn new() -> FlagSet {
+        FlagSet([false; NO_OF_FLAGS])
+    }
+
+    pub fn get(&self, flag: Flag) -> bool {
+        self.0[flag as usize]
+    }
+
+    pub fn set(&mut self, flag: Flag, value: bool) {
+        self.0[flag as usize] = value;
+    }
+}
+
+impl Default for FlagSet {
+    fn default() -> FlagSet {
+        FlagSet::new()
+    }
+}
+
 #[derive(Debug)]
 pub struct Heap {
     ptr: Unique<u32>,
@@ -229,6 +264,7 @@ impl Drop for Stack {
 #[derive(Debug, Default)]
 pub struct VM {
     regs: [i32; 4],
+    flags: FlagSet,
     stack: Stack,
     heap: Heap,
     bytecode: Vec<u8>,
