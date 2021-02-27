@@ -1,5 +1,7 @@
 #![feature(ptr_internals)]
 
+// OP_CODES
+
 fn nop(vm: &mut VM) {}
 
 const OP_CODES: [fn(&mut VM); 256] = [
@@ -525,12 +527,12 @@ impl Drop for Stack {
 #[derive(Debug, Default)]
 pub struct VM {
     regs: [i32; 4],
-    flags: FlagSet,
+    pub flags: FlagSet,
     stack: Stack,
     heap: Heap,
     bytecode: Vec<u8>,
-    prgrm_cntr: i32,
-    base_ptr: i32,
+    prgrm_cntr: usize,
+    base_ptr: u32,
     hdr_size: usize,
 }
 
@@ -553,7 +555,7 @@ impl VM {
     }
 
     fn step_program(&mut self) {
-        let instruction = self.bytecode[(self.prgrm_cntr as usize) + self.hdr_size];
+        let instruction = self.bytecode[self.prgrm_cntr + self.hdr_size];
 
         OP_CODES[instruction as usize](self);
     }
@@ -573,5 +575,22 @@ impl VM {
             self.step_program();
             self.prgrm_cntr += 1;
         }
+    }
+
+    pub fn fetch_reg(&mut self) -> u8 {
+        self.prgrm_cntr += 1;
+
+        self.bytecode[self.prgrm_cntr + self.hdr_size]
+    }
+
+    pub fn fetch_lit(&mut self) -> u32 {
+        let regs = (
+            self.fetch_reg() as u32,
+            self.fetch_reg() as u32,
+            self.fetch_reg() as u32,
+            self.fetch_reg() as u32,
+        );
+
+        regs.0 << 24 + regs.1 << 16 + regs.2 << 8 + regs.3
     }
 }
