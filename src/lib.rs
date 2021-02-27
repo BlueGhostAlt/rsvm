@@ -282,6 +282,51 @@ fn math_xor_stack(vm: &mut VM) {
     }
 }
 
+fn jump_absolute(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+    vm.prgrm_cntr = (addr as usize) - 1;
+}
+
+fn jump_equal(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+
+    if vm.flags.get(Flag::Equal) {
+        vm.prgrm_cntr = (addr as usize) - 1;
+    }
+}
+
+fn jump_not_equal(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+
+    if vm.flags.get(Flag::NotEqual) {
+        vm.prgrm_cntr = (addr as usize) - 1;
+    }
+}
+
+fn jump_greater(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+
+    if vm.flags.get(Flag::Greater) {
+        vm.prgrm_cntr = (addr as usize) - 1;
+    }
+}
+
+fn jump_smaller(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+
+    if vm.flags.get(Flag::Smaller) {
+        vm.prgrm_cntr = (addr as usize) - 1;
+    }
+}
+
+fn jump_overflow(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+
+    if vm.flags.get(Flag::Overflow) {
+        vm.prgrm_cntr = (addr as usize) - 1;
+    }
+}
+
 const OP_CODES: [fn(&mut VM); 256] = [
     exit,           // 0x00
     push_lit,       // 0x01
@@ -315,7 +360,7 @@ const OP_CODES: [fn(&mut VM); 256] = [
     math_or_stack,  // 0x1D
     math_xor_reg,   // 0x1E
     math_xor_stack, // 0x1F
-    nop,            // 0x20
+    jump_absolute,  // 0x20
     nop,            // 0x21
     nop,            // 0x22
     nop,            // 0x23
@@ -334,11 +379,11 @@ const OP_CODES: [fn(&mut VM); 256] = [
     nop,            // 0x30
     nop,            // 0x31
     nop,            // 0x32
-    nop,            // 0x33
-    nop,            // 0x34
-    nop,            // 0x35
-    nop,            // 0x36
-    nop,            // 0x37
+    jump_equal,     // 0x33
+    jump_not_equal, // 0x34
+    jump_greater,   // 0x35
+    jump_smaller,   // 0x36
+    jump_overflow,  // 0x37
     nop,            // 0x38
     nop,            // 0x39
     nop,            // 0x3A
@@ -819,7 +864,7 @@ pub struct VM {
     stack: Stack,
     pub heap: Heap,
     bytecode: Vec<u8>,
-    prgrm_cntr: usize,
+    pub prgrm_cntr: usize,
     base_ptr: u32,
     hdr_size: usize,
 }
