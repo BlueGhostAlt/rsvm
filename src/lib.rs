@@ -3,8 +3,6 @@
 use std::io::{self, Read, Write};
 use std::process::Command;
 
-// OP_CODES
-
 fn nop(_vm: &mut VM) {}
 
 fn exit(vm: &mut VM) {
@@ -59,263 +57,347 @@ fn syscall(vm: &mut VM) {
     }
 }
 
+fn push_lit(vm: &mut VM) {
+    let lit = vm.fetch_lit();
+    vm.stack.push(lit);
+}
+
+fn push_reg(vm: &mut VM) {
+    let reg = vm.fetch_reg();
+    vm.stack.push(vm.regs[reg as usize] as u32);
+}
+
+fn pop_reg(vm: &mut VM) {
+    let reg = vm.fetch_reg();
+    let value = vm.stack.pop();
+
+    match value {
+        Some(value) => vm.regs[reg as usize] = value as usize,
+        None => panic!("Could not pop the stack as it's empty!"),
+    }
+}
+
+fn pop_heap(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+    let value = vm.stack.pop();
+
+    match value {
+        Some(value) => vm.heap.write(addr as usize, value),
+        None => panic!("Could not pop the stack as it's empty!"),
+    }
+}
+
+fn stack_dupe(vm: &mut VM) {
+    vm.stack.push(vm.stack.peek());
+}
+
+fn mov_lit_reg(vm: &mut VM) {
+    let reg = vm.fetch_reg();
+    let value = vm.fetch_lit();
+
+    vm.regs[reg as usize] = value as usize;
+}
+
+fn mov_lit_heap(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+    let value = vm.fetch_lit();
+
+    vm.heap.write(addr as usize, value);
+}
+
+fn mov_heap_reg(vm: &mut VM) {
+    let reg = vm.fetch_reg();
+    let addr = vm.fetch_lit();
+
+    vm.regs[reg as usize] = vm.heap.read(addr as usize) as usize;
+}
+
+fn mov_reg_heap(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+    let reg = vm.fetch_reg();
+
+    vm.heap.write(addr as usize, vm.regs[reg as usize] as u32);
+}
+
+fn mov_reg_reg(vm: &mut VM) {
+    let reg_dst = vm.fetch_reg();
+    let reg_src = vm.fetch_reg();
+
+    vm.regs[reg_dst as usize] = vm.regs[reg_src as usize];
+}
+
+fn mov_heap_heap(vm: &mut VM) {
+    let addr_src = vm.fetch_lit();
+    let addr_dst = vm.fetch_lit();
+
+    let value = vm.heap.read(addr_src as usize);
+    vm.heap.write(addr_dst as usize, value);
+}
+
+fn push_heap(vm: &mut VM) {
+    let addr = vm.fetch_lit();
+    let value = vm.heap.read(addr as usize);
+
+    vm.stack.push(value);
+}
+
 const OP_CODES: [fn(&mut VM); 256] = [
-    exit, // 0x00
-    nop,  // 0x01
-    nop,  // 0x02
-    nop,  // 0x03
-    nop,  // 0x04
-    nop,  // 0x05
-    nop,  // 0x06
-    nop,  // 0x07
-    nop,  // 0x08
-    nop,  // 0x09
-    nop,  // 0x0A
-    nop,  // 0x0B
-    nop,  // 0x0C
-    nop,  // 0x0D
-    nop,  // 0x0E
-    nop,  // 0x0F
-    nop,  // 0x10
-    nop,  // 0x11
-    nop,  // 0x12
-    nop,  // 0x13
-    nop,  // 0x14
-    nop,  // 0x15
-    nop,  // 0x16
-    nop,  // 0x17
-    nop,  // 0x18
-    nop,  // 0x19
-    nop,  // 0x1A
-    nop,  // 0x1B
-    nop,  // 0x1C
-    nop,  // 0x1D
-    nop,  // 0x1E
-    nop,  // 0x1F
-    nop,  // 0x20
-    nop,  // 0x21
-    nop,  // 0x22
-    nop,  // 0x23
-    nop,  // 0x24
-    nop,  // 0x25
-    nop,  // 0x26
-    nop,  // 0x27
-    nop,  // 0x28
-    nop,  // 0x29
-    nop,  // 0x2A
-    nop,  // 0x2B
-    nop,  // 0x2C
-    nop,  // 0x2D
-    nop,  // 0x2E
-    nop,  // 0x2F
-    nop,  // 0x30
-    nop,  // 0x31
-    nop,  // 0x32
-    nop,  // 0x33
-    nop,  // 0x34
-    nop,  // 0x35
-    nop,  // 0x36
-    nop,  // 0x37
-    nop,  // 0x38
-    nop,  // 0x39
-    nop,  // 0x3A
-    nop,  // 0x3B
-    nop,  // 0x3C
-    nop,  // 0x3D
-    nop,  // 0x3E
-    nop,  // 0x3F
-    nop,  // 0x40
-    nop,  // 0x41
-    nop,  // 0x42
-    nop,  // 0x43
-    nop,  // 0x44
-    nop,  // 0x45
-    nop,  // 0x46
-    nop,  // 0x47
-    nop,  // 0x48
-    nop,  // 0x49
-    nop,  // 0x4A
-    nop,  // 0x4B
-    nop,  // 0x4C
-    nop,  // 0x4D
-    nop,  // 0x4E
-    nop,  // 0x4F
-    nop,  // 0x50
-    nop,  // 0x51
-    nop,  // 0x52
-    nop,  // 0x53
-    nop,  // 0x54
-    nop,  // 0x55
-    nop,  // 0x56
-    nop,  // 0x57
-    nop,  // 0x58
-    nop,  // 0x59
-    nop,  // 0x5A
-    nop,  // 0x5B
-    nop,  // 0x5C
-    nop,  // 0x5D
-    nop,  // 0x5E
-    nop,  // 0x5F
-    nop,  // 0x60
-    nop,  // 0x61
-    nop,  // 0x62
-    nop,  // 0x63
-    nop,  // 0x64
-    nop,  // 0x65
-    nop,  // 0x66
-    nop,  // 0x67
-    nop,  // 0x68
-    nop,  // 0x69
-    nop,  // 0x6A
-    nop,  // 0x6B
-    nop,  // 0x6C
-    nop,  // 0x6D
-    nop,  // 0x6E
-    nop,  // 0x6F
-    nop,  // 0x70
-    nop,  // 0x71
-    nop,  // 0x72
-    nop,  // 0x73
-    nop,  // 0x74
-    nop,  // 0x75
-    nop,  // 0x76
-    nop,  // 0x77
-    nop,  // 0x78
-    nop,  // 0x79
-    nop,  // 0x7A
-    nop,  // 0x7B
-    nop,  // 0x7C
-    nop,  // 0x7D
-    nop,  // 0x7E
-    nop,  // 0x7F
-    nop,  // 0x80
-    nop,  // 0x81
-    nop,  // 0x82
-    nop,  // 0x83
-    nop,  // 0x84
-    nop,  // 0x85
-    nop,  // 0x86
-    nop,  // 0x87
-    nop,  // 0x88
-    nop,  // 0x89
-    nop,  // 0x8A
-    nop,  // 0x8B
-    nop,  // 0x8C
-    nop,  // 0x8D
-    nop,  // 0x8E
-    nop,  // 0x8F
-    nop,  // 0x90
-    nop,  // 0x91
-    nop,  // 0x92
-    nop,  // 0x93
-    nop,  // 0x94
-    nop,  // 0x95
-    nop,  // 0x96
-    nop,  // 0x97
-    nop,  // 0x98
-    nop,  // 0x99
-    nop,  // 0x9A
-    nop,  // 0x9B
-    nop,  // 0x9C
-    nop,  // 0x9D
-    nop,  // 0x9E
-    nop,  // 0x9F
-    nop,  // 0xA0
-    nop,  // 0xA1
-    nop,  // 0xA2
-    nop,  // 0xA3
-    nop,  // 0xA4
-    nop,  // 0xA5
-    nop,  // 0xA6
-    nop,  // 0xA7
-    nop,  // 0xA8
-    nop,  // 0xA9
-    nop,  // 0xAA
-    nop,  // 0xAB
-    nop,  // 0xAC
-    nop,  // 0xAD
-    nop,  // 0xAE
-    nop,  // 0xAF
-    nop,  // 0xB0
-    nop,  // 0xB1
-    nop,  // 0xB2
-    nop,  // 0xB3
-    nop,  // 0xB4
-    nop,  // 0xB5
-    nop,  // 0xB6
-    nop,  // 0xB7
-    nop,  // 0xB8
-    nop,  // 0xB9
-    nop,  // 0xBA
-    nop,  // 0xBB
-    nop,  // 0xBC
-    nop,  // 0xBD
-    nop,  // 0xBE
-    nop,  // 0xBF
-    nop,  // 0xC0
-    nop,  // 0xC1
-    nop,  // 0xC2
-    nop,  // 0xC3
-    nop,  // 0xC4
-    nop,  // 0xC5
-    nop,  // 0xC6
-    nop,  // 0xC7
-    nop,  // 0xC8
-    nop,  // 0xC9
-    nop,  // 0xCA
-    nop,  // 0xCB
-    nop,  // 0xCC
-    nop,  // 0xCD
-    nop,  // 0xCE
-    nop,  // 0xCF
-    nop,  // 0xD0
-    nop,  // 0xD1
-    nop,  // 0xD2
-    nop,  // 0xD3
-    nop,  // 0xD4
-    nop,  // 0xD5
-    nop,  // 0xD6
-    nop,  // 0xD7
-    nop,  // 0xD8
-    nop,  // 0xD9
-    nop,  // 0xDA
-    nop,  // 0xDB
-    nop,  // 0xDC
-    nop,  // 0xDD
-    nop,  // 0xDE
-    nop,  // 0xDF
-    nop,  // 0xE0
-    nop,  // 0xE1
-    nop,  // 0xE2
-    nop,  // 0xE3
-    nop,  // 0xE4
-    nop,  // 0xE5
-    nop,  // 0xE6
-    nop,  // 0xE7
-    nop,  // 0xE8
-    nop,  // 0xE9
-    nop,  // 0xEA
-    nop,  // 0xEB
-    nop,  // 0xEC
-    nop,  // 0xED
-    nop,  // 0xEE
-    nop,  // 0xEF
-    nop,  // 0xF0
-    nop,  // 0xF1
-    nop,  // 0xF2
-    nop,  // 0xF3
-    nop,  // 0xF4
-    nop,  // 0xF5
-    nop,  // 0xF6
-    nop,  // 0xF7
-    nop,  // 0xF8
-    nop,  // 0xF9
-    nop,  // 0xFA
-    nop,  // 0xFB
-    nop,  // 0xFC
-    nop,  // 0xFD
-    nop,  // 0xFE
-    syscall,  // 0xFF
+    exit,          // 0x00
+    push_lit,      // 0x01
+    push_reg,      // 0x02
+    pop_reg,       // 0x03
+    pop_heap,      // 0x04
+    stack_dupe,    // 0x05
+    mov_lit_reg,   // 0x06
+    mov_lit_heap,  // 0x07
+    mov_heap_reg,  // 0x08
+    mov_reg_heap,  // 0x09
+    mov_reg_reg,   // 0x0A
+    mov_heap_heap, // 0x0B
+    push_heap,     // 0x0C
+    nop,           // 0x0D
+    nop,           // 0x0E
+    nop,           // 0x0F
+    nop,           // 0x10
+    nop,           // 0x11
+    nop,           // 0x12
+    nop,           // 0x13
+    nop,           // 0x14
+    nop,           // 0x15
+    nop,           // 0x16
+    nop,           // 0x17
+    nop,           // 0x18
+    nop,           // 0x19
+    nop,           // 0x1A
+    nop,           // 0x1B
+    nop,           // 0x1C
+    nop,           // 0x1D
+    nop,           // 0x1E
+    nop,           // 0x1F
+    nop,           // 0x20
+    nop,           // 0x21
+    nop,           // 0x22
+    nop,           // 0x23
+    nop,           // 0x24
+    nop,           // 0x25
+    nop,           // 0x26
+    nop,           // 0x27
+    nop,           // 0x28
+    nop,           // 0x29
+    nop,           // 0x2A
+    nop,           // 0x2B
+    nop,           // 0x2C
+    nop,           // 0x2D
+    nop,           // 0x2E
+    nop,           // 0x2F
+    nop,           // 0x30
+    nop,           // 0x31
+    nop,           // 0x32
+    nop,           // 0x33
+    nop,           // 0x34
+    nop,           // 0x35
+    nop,           // 0x36
+    nop,           // 0x37
+    nop,           // 0x38
+    nop,           // 0x39
+    nop,           // 0x3A
+    nop,           // 0x3B
+    nop,           // 0x3C
+    nop,           // 0x3D
+    nop,           // 0x3E
+    nop,           // 0x3F
+    nop,           // 0x40
+    nop,           // 0x41
+    nop,           // 0x42
+    nop,           // 0x43
+    nop,           // 0x44
+    nop,           // 0x45
+    nop,           // 0x46
+    nop,           // 0x47
+    nop,           // 0x48
+    nop,           // 0x49
+    nop,           // 0x4A
+    nop,           // 0x4B
+    nop,           // 0x4C
+    nop,           // 0x4D
+    nop,           // 0x4E
+    nop,           // 0x4F
+    nop,           // 0x50
+    nop,           // 0x51
+    nop,           // 0x52
+    nop,           // 0x53
+    nop,           // 0x54
+    nop,           // 0x55
+    nop,           // 0x56
+    nop,           // 0x57
+    nop,           // 0x58
+    nop,           // 0x59
+    nop,           // 0x5A
+    nop,           // 0x5B
+    nop,           // 0x5C
+    nop,           // 0x5D
+    nop,           // 0x5E
+    nop,           // 0x5F
+    nop,           // 0x60
+    nop,           // 0x61
+    nop,           // 0x62
+    nop,           // 0x63
+    nop,           // 0x64
+    nop,           // 0x65
+    nop,           // 0x66
+    nop,           // 0x67
+    nop,           // 0x68
+    nop,           // 0x69
+    nop,           // 0x6A
+    nop,           // 0x6B
+    nop,           // 0x6C
+    nop,           // 0x6D
+    nop,           // 0x6E
+    nop,           // 0x6F
+    nop,           // 0x70
+    nop,           // 0x71
+    nop,           // 0x72
+    nop,           // 0x73
+    nop,           // 0x74
+    nop,           // 0x75
+    nop,           // 0x76
+    nop,           // 0x77
+    nop,           // 0x78
+    nop,           // 0x79
+    nop,           // 0x7A
+    nop,           // 0x7B
+    nop,           // 0x7C
+    nop,           // 0x7D
+    nop,           // 0x7E
+    nop,           // 0x7F
+    nop,           // 0x80
+    nop,           // 0x81
+    nop,           // 0x82
+    nop,           // 0x83
+    nop,           // 0x84
+    nop,           // 0x85
+    nop,           // 0x86
+    nop,           // 0x87
+    nop,           // 0x88
+    nop,           // 0x89
+    nop,           // 0x8A
+    nop,           // 0x8B
+    nop,           // 0x8C
+    nop,           // 0x8D
+    nop,           // 0x8E
+    nop,           // 0x8F
+    nop,           // 0x90
+    nop,           // 0x91
+    nop,           // 0x92
+    nop,           // 0x93
+    nop,           // 0x94
+    nop,           // 0x95
+    nop,           // 0x96
+    nop,           // 0x97
+    nop,           // 0x98
+    nop,           // 0x99
+    nop,           // 0x9A
+    nop,           // 0x9B
+    nop,           // 0x9C
+    nop,           // 0x9D
+    nop,           // 0x9E
+    nop,           // 0x9F
+    nop,           // 0xA0
+    nop,           // 0xA1
+    nop,           // 0xA2
+    nop,           // 0xA3
+    nop,           // 0xA4
+    nop,           // 0xA5
+    nop,           // 0xA6
+    nop,           // 0xA7
+    nop,           // 0xA8
+    nop,           // 0xA9
+    nop,           // 0xAA
+    nop,           // 0xAB
+    nop,           // 0xAC
+    nop,           // 0xAD
+    nop,           // 0xAE
+    nop,           // 0xAF
+    nop,           // 0xB0
+    nop,           // 0xB1
+    nop,           // 0xB2
+    nop,           // 0xB3
+    nop,           // 0xB4
+    nop,           // 0xB5
+    nop,           // 0xB6
+    nop,           // 0xB7
+    nop,           // 0xB8
+    nop,           // 0xB9
+    nop,           // 0xBA
+    nop,           // 0xBB
+    nop,           // 0xBC
+    nop,           // 0xBD
+    nop,           // 0xBE
+    nop,           // 0xBF
+    nop,           // 0xC0
+    nop,           // 0xC1
+    nop,           // 0xC2
+    nop,           // 0xC3
+    nop,           // 0xC4
+    nop,           // 0xC5
+    nop,           // 0xC6
+    nop,           // 0xC7
+    nop,           // 0xC8
+    nop,           // 0xC9
+    nop,           // 0xCA
+    nop,           // 0xCB
+    nop,           // 0xCC
+    nop,           // 0xCD
+    nop,           // 0xCE
+    nop,           // 0xCF
+    nop,           // 0xD0
+    nop,           // 0xD1
+    nop,           // 0xD2
+    nop,           // 0xD3
+    nop,           // 0xD4
+    nop,           // 0xD5
+    nop,           // 0xD6
+    nop,           // 0xD7
+    nop,           // 0xD8
+    nop,           // 0xD9
+    nop,           // 0xDA
+    nop,           // 0xDB
+    nop,           // 0xDC
+    nop,           // 0xDD
+    nop,           // 0xDE
+    nop,           // 0xDF
+    nop,           // 0xE0
+    nop,           // 0xE1
+    nop,           // 0xE2
+    nop,           // 0xE3
+    nop,           // 0xE4
+    nop,           // 0xE5
+    nop,           // 0xE6
+    nop,           // 0xE7
+    nop,           // 0xE8
+    nop,           // 0xE9
+    nop,           // 0xEA
+    nop,           // 0xEB
+    nop,           // 0xEC
+    nop,           // 0xED
+    nop,           // 0xEE
+    nop,           // 0xEF
+    nop,           // 0xF0
+    nop,           // 0xF1
+    nop,           // 0xF2
+    nop,           // 0xF3
+    nop,           // 0xF4
+    nop,           // 0xF5
+    nop,           // 0xF6
+    nop,           // 0xF7
+    nop,           // 0xF8
+    nop,           // 0xF9
+    nop,           // 0xFA
+    nop,           // 0xFB
+    nop,           // 0xFC
+    nop,           // 0xFD
+    nop,           // 0xFE
+    syscall,       // 0xFF
 ];
 
 use std::alloc::{alloc, dealloc, realloc, Layout};
@@ -423,6 +505,9 @@ impl Heap {
     }
 
     pub fn write(&mut self, addr: usize, value: u32) {
+        if value == 0 {
+            return;
+        }
         if addr >= self.cap {
             self.grow(addr + 1);
         }
