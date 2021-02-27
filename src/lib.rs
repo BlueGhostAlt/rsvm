@@ -2,10 +2,14 @@
 
 // OP_CODES
 
-fn nop(vm: &mut VM) {}
+fn nop(_vm: &mut VM) {}
+
+fn exit(vm: &mut VM) {
+    vm.flags.set(Flag::Stop, true);
+}
 
 const OP_CODES: [fn(&mut VM); 256] = [
-    nop, // 0x00
+    exit, // 0x00
     nop, // 0x01
     nop, // 0x02
     nop, // 0x03
@@ -591,6 +595,6 @@ impl VM {
             self.fetch_reg() as u32,
         );
 
-        regs.0 << 24 + regs.1 << 16 + regs.2 << 8 + regs.3
+        (regs.0 << 24) + (regs.1 << 16) + (regs.2 << 8) + regs.3
     }
 }

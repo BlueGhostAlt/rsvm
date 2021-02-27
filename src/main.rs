@@ -46,6 +46,8 @@ fn try_main() -> Result<(), CliError> {
 
     vm.run_program();
 
+    println!("{:?}", vm);
+
     Ok(())
 }
 
