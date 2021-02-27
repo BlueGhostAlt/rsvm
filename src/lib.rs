@@ -219,9 +219,7 @@ fn math_div_stack(vm: &mut VM) {
     let (a, b) = (vm.stack.pop(), vm.stack.pop());
 
     match (a, b) {
-        (Some(a), Some(b)) => {
-            vm.stack.push(a / b);
-        }
+        (Some(a), Some(b)) => vm.stack.push(a / b),
         _ => panic!("Could not pop the stack as it's empty!"),
     }
 }
@@ -356,6 +354,56 @@ fn flag_reset(vm: &mut VM) {
     vm.flags.set(Flag::Overflow, false);
 }
 
+fn math_inc_reg(vm: &mut VM) {
+    let reg = vm.fetch_reg();
+
+    if vm.regs[reg as usize] == usize::MAX {
+        vm.flags.set(Flag::Overflow, true);
+    }
+
+    vm.regs[reg as usize] += 1;
+}
+
+fn math_dec_reg(vm: &mut VM) {
+    let reg = vm.fetch_reg();
+
+    if vm.regs[reg as usize] == 0 {
+        vm.flags.set(Flag::Overflow, true);
+    }
+
+    vm.regs[reg as usize] -= 1;
+}
+
+fn math_inc_stack(vm: &mut VM) {
+    let value = vm.stack.pop();
+
+    match value {
+        Some(value) => {
+            if value == u32::MAX {
+                vm.flags.set(Flag::Overflow, true);
+            }
+
+            vm.stack.push(value + 1);
+        }
+        None => panic!("Could not pop the stack as it's empty!"),
+    }
+}
+
+fn math_dec_stack(vm: &mut VM) {
+    let value = vm.stack.pop();
+
+    match value {
+        Some(value) => {
+            if value == 0 {
+                vm.flags.set(Flag::Overflow, true);
+            }
+
+            vm.stack.push(value - 1);
+        }
+        None => panic!("Could not pop the stack as it's empty!"),
+    }
+}
+
 const OP_CODES: [fn(&mut VM); 256] = [
     exit,              // 0x00
     push_lit,          // 0x01
@@ -437,10 +485,10 @@ const OP_CODES: [fn(&mut VM); 256] = [
     nop,               // 0x4D
     nop,               // 0x4E
     nop,               // 0x4F
-    nop,               // 0x50
-    nop,               // 0x51
-    nop,               // 0x52
-    nop,               // 0x53
+    math_inc_reg,      // 0x50
+    math_dec_reg,      // 0x51
+    math_inc_stack,    // 0x52
+    math_dec_stack,    // 0x53
     nop,               // 0x54
     nop,               // 0x55
     nop,               // 0x56
