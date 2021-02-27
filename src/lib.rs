@@ -292,19 +292,13 @@ fn compare_reg_reg(vm: &mut VM) {
 }
 
 fn compare_reg_lit(vm: &mut VM) {
-    let (a, b) = (
-        vm.regs[vm.fetch_reg() as usize],
-        vm.fetch_lit(),
-    );
+    let (a, b) = (vm.regs[vm.fetch_reg() as usize], vm.fetch_lit());
 
     vm.compare_numbers(a as u32, b);
 }
 
 fn compare_stack_lit(vm: &mut VM) {
-    let (a, b) = (
-        vm.stack.peek(),
-        vm.fetch_lit(),
-    );
+    let (a, b) = (vm.stack.peek(), vm.fetch_lit());
 
     vm.compare_numbers(a, b);
 }
@@ -352,6 +346,14 @@ fn jump_overflow(vm: &mut VM) {
     if vm.flags.get(Flag::Overflow) {
         vm.prgrm_cntr = (addr as usize) - 1;
     }
+}
+
+fn flag_reset(vm: &mut VM) {
+    vm.flags.set(Flag::Equal, false);
+    vm.flags.set(Flag::NotEqual, false);
+    vm.flags.set(Flag::Greater, false);
+    vm.flags.set(Flag::Smaller, false);
+    vm.flags.set(Flag::Overflow, false);
 }
 
 const OP_CODES: [fn(&mut VM); 256] = [
@@ -419,7 +421,7 @@ const OP_CODES: [fn(&mut VM); 256] = [
     nop,               // 0x3D
     nop,               // 0x3E
     nop,               // 0x3F
-    nop,               // 0x40
+    flag_reset,        // 0x40
     nop,               // 0x41
     nop,               // 0x42
     nop,               // 0x43
